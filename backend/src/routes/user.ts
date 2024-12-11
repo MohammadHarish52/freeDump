@@ -2,7 +2,12 @@ import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, verify } from "hono/jwt";
-import { SignUpInput, SignInInput } from "../../../common/src/zod";
+import {
+  SignUpInput,
+  SignInInput,
+  signInInput,
+  signUpInput,
+} from "@harish_52/freedump-common";
 
 const user = new Hono<{
   Bindings: {
@@ -32,6 +37,13 @@ user.post("/signup", async (c) => {
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
   const body = await c.req.json();
+  const { success } = signUpInput.safeParse(body);
+  if (!success) {
+    c.status(411);
+    return c.json({
+      message: "wrong inputs",
+    });
+  }
 
   try {
     const user = await prisma.user.create({
@@ -53,7 +65,14 @@ user.post("/signin", async (c) => {
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
   const body = await c.req.json();
-  
+  const { success } = signInInput.safeParse(body);
+  if (!success) {
+    c.status(411);
+    return c.json({
+      message: "wrong inputs",
+    });
+  }
+
   const user = await prisma.user.findUnique({
     where: {
       email: body.email,
